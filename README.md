@@ -33,7 +33,7 @@ Just open an issue at:
 Install dependencies:
 
 ```
-npm i --legacy-peer-deps
+npm i
 ```
 
 Run local development:
