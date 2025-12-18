@@ -1,7 +1,8 @@
 'use client'
 
-import { useMemo } from 'react'
-import { MDXRemote } from 'next-mdx-remote/rsc'
+import { useMemo, useState, useEffect } from 'react'
+import { MDXRemote, MDXRemoteSerializeResult } from 'next-mdx-remote'
+import { serialize } from 'next-mdx-remote/serialize'
 import { AlertTriangle } from 'lucide-react'
 
 interface MDXPreviewProps {
@@ -50,22 +51,42 @@ const components = {
 }
 
 export function MDXPreview({ content }: MDXPreviewProps) {
-  const processedContent = useMemo(() => {
+  const [serializedContent, setSerializedContent] = useState<MDXRemoteSerializeResult | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
     if (!content.trim()) {
-      return null
+      setSerializedContent(null)
+      setError(null)
+      return
     }
 
-    try {
-      // Basic validation - check for common MDX issues
-      if (content.includes('```') && !content.match(/```[\s\S]*?```/g)) {
-        throw new Error('Unclosed code block')
+    const serializeContent = async () => {
+      setLoading(true)
+      setError(null)
+      
+      try {
+        // Basic validation - check for common MDX issues
+        if (content.includes('```') && !content.match(/```[\s\S]*?```/g)) {
+          throw new Error('Unclosed code block')
+        }
+
+        const serialized = await serialize(content, {
+          parseFrontmatter: true,
+        })
+        setSerializedContent(serialized)
+      } catch (err) {
+        console.error('MDX serialization error:', err)
+        setError(err instanceof Error ? err.message : 'Failed to process MDX content')
+        setSerializedContent(null)
+      } finally {
+        setLoading(false)
       }
-
-      return content
-    } catch (error) {
-      console.error('MDX validation error:', error)
-      return null
     }
+
+    const timeoutId = setTimeout(serializeContent, 300) // Debounce
+    return () => clearTimeout(timeoutId)
   }, [content])
 
   if (!content.trim()) {
@@ -79,13 +100,33 @@ export function MDXPreview({ content }: MDXPreviewProps) {
     )
   }
 
-  if (!processedContent) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-32 text-gray-500">
+        <div className="text-center">
+          <div className="text-sm">Processing preview...</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
     return (
       <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
         <AlertTriangle className="h-4 w-4 flex-shrink-0" />
         <div>
           <div className="font-medium">Preview Error</div>
-          <div className="text-sm">There's an issue with the MDX syntax. Please check your content.</div>
+          <div className="text-sm">{error}</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!serializedContent) {
+    return (
+      <div className="flex items-center justify-center h-32 text-gray-500">
+        <div className="text-center">
+          <div className="text-sm">No content to preview</div>
         </div>
       </div>
     )
@@ -94,17 +135,17 @@ export function MDXPreview({ content }: MDXPreviewProps) {
   try {
     return (
       <div className="prose prose-gray max-w-none">
-        <MDXRemote source={processedContent} components={components} />
+        <MDXRemote {...serializedContent} components={components} />
       </div>
     )
-  } catch (error) {
+  } catch (renderError) {
     return (
       <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
         <AlertTriangle className="h-4 w-4 flex-shrink-0" />
         <div>
           <div className="font-medium">Render Error</div>
           <div className="text-sm">
-            {error instanceof Error ? error.message : 'Failed to render MDX content'}
+            {renderError instanceof Error ? renderError.message : 'Failed to render MDX content'}
           </div>
         </div>
       </div>

@@ -259,11 +259,37 @@ class Logger {
     // Send to file logger in production
     if (!this.isDevelopment && entry.level === LogLevel.ERROR) {
       try {
-        const { errorLogger } = await import('./error-logger')
-        await errorLogger.log(entry.message, entry.error, entry.context, 'error')
+        // Check if we're on the server side
+        if (typeof window === 'undefined') {
+          // Server-side: use direct file logging
+          const { serverErrorLogger } = await import('./error-logger.server')
+          await serverErrorLogger.log(entry.message, entry.error, entry.context, 'error')
+        } else {
+          // Client-side: use API endpoint
+          await fetch('/api/errors', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              message: entry.message,
+              error: entry.error ? {
+                name: entry.error.name,
+                message: entry.error.message,
+                stack: entry.error.stack
+              } : undefined,
+              context: entry.context,
+              level: 'error',
+              url: window.location.href
+            })
+          }).catch(error => {
+            // Fail silently to avoid logging loops
+            console.error('Failed to send error to API:', error)
+          })
+        }
       } catch (error) {
         // Fail silently to avoid logging loops
-        console.error('Failed to send log to file logger:', error)
+        console.error('Failed to send log to external service:', error)
       }
     }
   }

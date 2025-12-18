@@ -1,5 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
+import Script from "next/script"
 
 import "./globals.css"
 import { AuthProvider } from "@/components/providers/auth-provider"
@@ -35,6 +36,13 @@ export default function RootLayout({
         <AuthProvider>
           {children}
         </AuthProvider>
+        {process.env.RYBBIT_SITE_ID && (
+          <Script
+            src="https://app.rybbit.io/api/script.js"
+            data-site-id={process.env.RYBBIT_SITE_ID}
+            strategy="afterInteractive"
+          />
+        )}
       </body>
     </html>
   )

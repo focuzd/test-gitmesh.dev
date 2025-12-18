@@ -2,9 +2,7 @@
  * Production error logging utilities
  */
 
-import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
-import { logError } from './error-handling'
 
 export interface ErrorLog {
   id: string
@@ -39,6 +37,9 @@ class ErrorLogger {
    */
   async logToFile(errorLog: ErrorLog): Promise<void> {
     try {
+      // Dynamic import to avoid bundling fs in client code
+      const { writeFile, mkdir } = await import('fs/promises')
+      
       // Ensure logs directory exists
       await mkdir(this.logDir, { recursive: true })
 
@@ -121,7 +122,7 @@ class ErrorLogger {
   }
 
   /**
-   * Log error with context
+   * Log error with context (client-safe version)
    */
   async log(
     message: string,
@@ -133,12 +134,36 @@ class ErrorLogger {
     
     // Always log to console in development
     if (process.env.NODE_ENV === 'development') {
-      logError(message, error, context)
+      console.error(`[${level.toUpperCase()}] ${message}`, error, context)
     }
     
-    // Log to file in production
+    // In production, send to API endpoint if on client side
     if (process.env.NODE_ENV === 'production') {
-      await this.logToFile(errorLog)
+      if (typeof window !== 'undefined') {
+        // Client-side: use API endpoint
+        await fetch('/api/errors', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message,
+            error: error ? {
+              name: error.name,
+              message: error.message,
+              stack: error.stack
+            } : undefined,
+            context,
+            level,
+            url: window.location.href
+          })
+        }).catch(err => {
+          console.error('Failed to send error to API:', err)
+        })
+      } else {
+        // Server-side: use file logging
+        await this.logToFile(errorLog)
+      }
     }
     
     // Send to external service if configured

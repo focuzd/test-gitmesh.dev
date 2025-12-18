@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default function VlogsPage() {
   // Empty vlogs array - no dummy data
   const vlogs: any[] = []
-  
+
   const categories = ["All", "Demo", "Tutorial", "Interview", "Technical", "Community", "Comparison"]
   const sortOptions = ["Latest", "Oldest", "Most Viewed", "Duration (Short)", "Duration (Long)"]
 
@@ -64,11 +64,10 @@ export default function VlogsPage() {
                   key={category}
                   variant={category === "All" ? "default" : "outline"}
                   size="sm"
-                  className={`rounded-full px-4 py-2 font-semibold ${
-                    category === "All" 
-                      ? "bg-black text-white hover:bg-black/90" 
-                      : "border-2 border-black hover:bg-gray-50"
-                  }`}
+                  className={`rounded-full px-4 py-2 font-semibold ${category === "All"
+                    ? "bg-black text-white hover:bg-black/90"
+                    : "border-2 border-black hover:bg-gray-50"
+                    }`}
                 >
                   {category}
                 </Button>
@@ -127,7 +126,7 @@ export default function VlogsPage() {
               <div className="bg-white border-4 border-black rounded-3xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] mb-16">
                 {/* Featured video content would go here */}
               </div>
-              
+
               {/* Videos Grid - Only show if vlogs exist */}
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {/* Video grid content would go here */}
@@ -153,7 +152,7 @@ export default function VlogsPage() {
                   Subscribe on YouTube
                 </a>
               </Button>
-              <Button asChild variant="outline" className="border-2 border-white text-white hover:bg-white hover:text-black rounded-lg px-8 py-3">
+              <Button asChild variant="outline" className="border-2 border-white text-black hover:bg-gray-100 hover:text-black rounded-lg px-8 py-3">
                 <Link href="/blog">
                   Read Our Blog
                 </Link>
